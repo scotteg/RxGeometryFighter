@@ -9,6 +9,7 @@
 import UIKit
 import QuartzCore
 import SceneKit
+import RxSwift
 
 class GameViewController: UIViewController {
   
@@ -39,12 +40,14 @@ class GameViewController: UIViewController {
   var scnView: SCNView!
   var scnScene: SCNScene!
   var cameraNode: SCNNode!
-  var spawnTime: NSTimeInterval = 0.0
+  var spawnTime$ = Variable<NSTimeInterval>(0.0)
   var game = GameHelper.sharedInstance
   var splashNodes = [String: SCNNode]()
   let assetsDirectory = "GeometryFighter.scnassets/"
   lazy var texturesDirectory: String = { self.assetsDirectory + "Textures/" }()
   lazy var soundsDirectory: String = { self.assetsDirectory + "Sounds/" }()
+  
+  let disposeBag = DisposeBag()
   
   // MARK: - View life cycle
   
@@ -56,6 +59,21 @@ class GameViewController: UIViewController {
     setupHUD()
     setupSplash()
     setupSounds()
+    
+    scnView.rx_rendererUpdateAtTime
+    .subscribeNext { [unowned self] in
+      if self.game.state == .Playing {
+        if $0.time > self.spawnTime$.value {
+          self.spawnShape()
+          self.spawnTime$.value = $0.time + NSTimeInterval(Float.random(min: 0.2, max: 1.5))
+        }
+        
+        self.cleanScene()
+      }
+      
+      self.game.updateHUD()
+    }
+    .addDisposableTo(disposeBag)
   }
   
 //  override func shouldAutorotate() -> Bool { // Returns true by default
@@ -142,7 +160,6 @@ class GameViewController: UIViewController {
 //    scnView.allowsCameraControl = true // true by default
     scnView.autoenablesDefaultLighting = true
     scnView.playing = true // Force endless playing mode, which prevents entering paused state if there are no animations to play out
-    scnView.delegate = self
   }
   
   func setupScene() {
@@ -270,23 +287,6 @@ class GameViewController: UIViewController {
       guard $0.presentationNode.position.y < -2.0 else { return }
       $0.removeFromParentNode()
     }
-  }
-  
-}
-
-extension GameViewController: SCNSceneRendererDelegate {
-  
-  func renderer(renderer: SCNSceneRenderer, updateAtTime time: NSTimeInterval) {
-    if game.state == .Playing {
-      if time > spawnTime {
-        spawnShape()
-        spawnTime = time + NSTimeInterval(Float.random(min: 0.2, max: 1.5))
-      }
-      
-      cleanScene()
-    }
-    
-    game.updateHUD()
   }
   
 }
