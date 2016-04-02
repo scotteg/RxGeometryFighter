@@ -61,24 +61,24 @@ class GameViewController: UIViewController {
     setupSounds()
     
     scnView.rx_rendererUpdateAtTime
-    .subscribeNext { [unowned self] in
-      if self.game.state == .Playing {
-        if $0.time > self.spawnTime$.value {
-          self.spawnShape()
-          self.spawnTime$.value = $0.time + NSTimeInterval(Float.random(min: 0.2, max: 1.5))
+      .subscribeNext { [unowned self] in
+        if self.game.state == .Playing {
+          if $0.time > self.spawnTime$.value {
+            self.spawnShape()
+            self.spawnTime$.value = $0.time + NSTimeInterval(Float.random(min: 0.2, max: 1.5))
+          }
+          
+          self.cleanScene()
         }
         
-        self.cleanScene()
+        self.game.updateHUD()
       }
-      
-      self.game.updateHUD()
-    }
-    .addDisposableTo(disposeBag)
+      .addDisposableTo(disposeBag)
   }
   
-//  override func shouldAutorotate() -> Bool { // Returns true by default
-//    return true
-//  }
+  //  override func shouldAutorotate() -> Bool { // Returns true by default
+  //    return true
+  //  }
   
   override func prefersStatusBarHidden() -> Bool {
     return true
@@ -146,7 +146,7 @@ class GameViewController: UIViewController {
       scnScene.rootNode.runAction(SCNAction.waitForDuration(5.0)) {
         self.showSplash(Constant.TapToPlay.rawValue)
         self.game.state = .TapToPlay
-        }
+      }
       
       return
     }
@@ -157,7 +157,7 @@ class GameViewController: UIViewController {
   func setupView() {
     scnView = view as! SCNView
     scnView.showsStatistics = true
-//    scnView.allowsCameraControl = true // true by default
+    //    scnView.allowsCameraControl = true // true by default
     scnView.autoenablesDefaultLighting = true
     scnView.playing = true // Force endless playing mode, which prevents entering paused state if there are no animations to play out
   }
